@@ -3,13 +3,6 @@
 using namespace std;
 
 
-// struct cmp {
-//     bool operator() (set<int> a, set<int> b) const {
-//         return (a.size() < b.size());
-//     }
-// };
-
-
 
 int n_variables, n_clauses;
 map<int, int> curr_assignment;
@@ -18,7 +11,7 @@ bool dpll(vector<set<int>>& clauses, vector<bool>& already_true, int set_literal
 {
 	vector<int> store_index;
 	vector<int> turned_true;
-	// step 1 and 3 from pseudocode, 4 is also included in the elseif condition
+	// step 1 and 3 from pseudocode, 4 is also included in the last if condition
 	if(set_literal != 0)
 	{
 		curr_assignment[abs(set_literal)] = set_literal;
@@ -32,13 +25,29 @@ bool dpll(vector<set<int>>& clauses, vector<bool>& already_true, int set_literal
 				turned_true.push_back(i);
 				already_true[i] = 1;
 			}
-			else if(clauses[i].find(-set_literal) != clauses[i].end())
+			
+			if(clauses[i].find(-set_literal) != clauses[i].end())
 			{
 				// put this in store_index and remove this literal from this clause
 				store_index.push_back(-i);
 				clauses[i].erase(-set_literal);
 				if(clauses[i].size() == 0) // it must be true for sat otherwise this is unsat for assigned value yet
+				{
+					// remove the effect of current assignmeent
+					curr_assignment.erase(set_literal);
+					// turn all those assignment turned false by this
+					for(int x:turned_true)
+						already_true[x] = false;
+					// add this literal in all the clauses in which true was assigned
+					for(int x:store_index)
+					{
+						if(x < 0)
+							clauses[-x].insert(-set_literal);
+						else
+							clauses[x].insert(set_literal);
+					}
 					return false;
+				}
 			}
 		}
 	}
@@ -59,13 +68,32 @@ bool dpll(vector<set<int>>& clauses, vector<bool>& already_true, int set_literal
 		{
 			//unit literal
 			unit_literal = *clauses[i].begin();
-			return dpll(clauses, already_true, unit_literal);
+			bool final = dpll(clauses, already_true, unit_literal);
+			if(final) return true;
+			else
+			{
+				// remove the effect of current assignmeent
+				curr_assignment.erase(set_literal);
+				// turn all those assignment turned false by this
+				for(int x:turned_true)
+					already_true[x] = false;
+				// add this literal in all the clauses in which true was assigned
+				for(int x:store_index)
+				{
+					if(x < 0)
+						clauses[-x].insert(-set_literal);
+					else
+						clauses[x].insert(set_literal);
+				}
+				return false;
+			}
 		}
 	}
 	// remaning part of step 5, checking for pure literals
 	for(int j=1;j<=n_variables;j++)
 	{
 		bool found = false, positive = true;
+		if(curr_assignment.find(j) != curr_assignment.end()) continue;
 		for(int i=0;i<(int)clauses.size();i++)
 		{
 			if(already_true[i]) continue;
@@ -97,7 +125,30 @@ bool dpll(vector<set<int>>& clauses, vector<bool>& already_true, int set_literal
 		}
 		// if found is false => either impure literal or not found
 		if(found)
-			return dpll(clauses, already_true, j);
+		{
+			bool final = dpll(clauses, already_true, j);
+			if(final)
+			{
+				return true;
+			}
+			else 
+			{
+				// remove the effect of current assignmeent
+				curr_assignment.erase(set_literal);
+				// turn all those assignment turned false by this
+				for(int x:turned_true)
+					already_true[x] = false;
+				// add this literal in all the clauses in which true was assigned
+				for(int x:store_index)
+				{
+					if(x < 0)
+						clauses[-x].insert(-set_literal);
+					else
+						clauses[x].insert(set_literal);
+				}
+				return false;
+			}
+		}
 	}
 
 	// step 6, choosing a clause and assigning it
@@ -120,6 +171,19 @@ bool dpll(vector<set<int>>& clauses, vector<bool>& already_true, int set_literal
 		if(satisfied_all) return true;
 		else 
 		{
+			// remove the effect of current assignmeent
+			curr_assignment.erase(set_literal);
+			// turn all those assignment turned false by this
+			for(int x:turned_true)
+				already_true[x] = false;
+			// add this literal in all the clauses in which true was assigned
+			for(int x:store_index)
+			{
+				if(x < 0)
+					clauses[-x].insert(-set_literal);
+				else
+					clauses[x].insert(set_literal);
+			}
 			return false;
 		}
 	}
@@ -129,20 +193,25 @@ bool dpll(vector<set<int>>& clauses, vector<bool>& already_true, int set_literal
 	}
 	else 
 	{
-		// remove the current assignmeent
-		curr_assignment.erase(set_literal);
-		// turn all those assignment turned false by this
-		for(int i:turned_true)
-			already_true[i] = false;
-		// add this literal in all the clauses in which true was assigned
-		for(int i:store_index)
+		bool final = dpll(clauses, already_true, unassigned);
+		if(final) return true;
+		else
 		{
-			if(i < 0)
-				clauses[-i].insert(-set_literal);
-			else
-				clauses[i].insert(set_literal);
+			// remove the effect of current assignmeent
+			curr_assignment.erase(set_literal);
+			// turn all those assignment turned false by this
+			for(int x:turned_true)
+				already_true[x] = false;
+			// add this literal in all the clauses in which true was assigned
+			for(int x:store_index)
+			{
+				if(x < 0)
+					clauses[-x].insert(-set_literal);
+				else
+					clauses[x].insert(set_literal);
+			}
+			return false;
 		}
-		return dpll(clauses, already_true, unassigned);
 	}
 }
 
