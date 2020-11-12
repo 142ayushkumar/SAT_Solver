@@ -30,9 +30,9 @@ Prerequisite:
   
   
 Compilation:
-`main.cpp` contains all the code
-`cd src`
-`g++ -std=c++11 main.cpp -o main`
+`main.cpp` contains all the code  
+`cd src`  
+`g++ -std=c++11 main.cpp -o main`  
 
 To run:  
 `./main`  
