@@ -1,6 +1,6 @@
 for i in $(find ../testcases/unsat -type f -name '*')
 do
-    ../src/a.out < $i > tmp
+    ../src/main < $i > tmp
     if [ $(head -n1 tmp) == "SAT" ] ;then
         echo "SAT"
     else
